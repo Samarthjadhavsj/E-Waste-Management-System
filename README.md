@@ -81,10 +81,10 @@
 Electronic waste (e-waste) is one of the fastest-growing waste streams globally. In India alone, over **3.2 million tonnes** of e-waste is generated annually, with only **10-15%** being properly recycled.
 
 ### Challenges:
-- ❌ Lack of awareness about e-waste collection centers
-- ❌ No incentive for proper disposal
-- ❌ Difficulty in locating certified recyclers
-- ❌ Inefficient tracking of recycling activities
+- ⚠️ Lack of awareness about e-waste collection centers
+- ⚠️ No incentive for proper disposal
+- ⚠️ Difficulty in locating certified recyclers
+- ⚠️ Inefficient tracking of recycling activities
 
 ---
 
@@ -456,7 +456,27 @@ in the Software without restriction...
 
 <div align="center">
 
-### 👨‍💻 Samarth Jadhav
+<table>
+<tr>
+<td align="center">
+<img src="https://github.com/Samarthjadhavsj.png" width="100px;" alt="Samarth A Jadhav"/><br />
+<sub><b>SAMARTH A JADHAV</b></sub><br />
+<a href="https://github.com/Samarthjadhavsj">💻 Developer</a>
+</td>
+<td align="center">
+<img src="https://via.placeholder.com/100/0d1117/39c463?text=M" width="100px;" alt="Mithilesh"/><br />
+<sub><b>MITHILESH</b></sub><br />
+💻 Developer
+</td>
+<td align="center">
+<img src="https://via.placeholder.com/100/0d1117/39c463?text=H" width="100px;" alt="Hemanth"/><br />
+<sub><b>HEMANTH</b></sub><br />
+💻 Developer
+</td>
+</tr>
+</table>
+
+### Connect with the Team
 
 [![GitHub](https://img.shields.io/badge/GitHub-100000?style=for-the-badge&logo=github&logoColor=white)](https://github.com/Samarthjadhavsj)
 [![LinkedIn](https://img.shields.io/badge/LinkedIn-0077B5?style=for-the-badge&logo=linkedin&logoColor=white)](https://linkedin.com/in/samarthjadhavsj)
@@ -495,7 +515,15 @@ Special thanks to:
 
 ## 🌟 Star History
 
-[![Star History Chart](https://api.star-history.com/svg?repos=Samarthjadhavsj/E-Waste-Management-System&type=Date)](https://star-history.com/#Samarthjadhavsj/E-Waste-Management-System&Date)
+<div align="center">
+
+### Show your support by giving a ⭐ if you like this project!
+
+[![GitHub stars](https://img.shields.io/github/stars/Samarthjadhavsj/E-Waste-Management-System.svg?style=for-the-badge&logo=github)](https://github.com/Samarthjadhavsj/E-Waste-Management-System/stargazers)
+[![GitHub forks](https://img.shields.io/github/forks/Samarthjadhavsj/E-Waste-Management-System.svg?style=for-the-badge&logo=github)](https://github.com/Samarthjadhavsj/E-Waste-Management-System/network)
+[![GitHub issues](https://img.shields.io/github/issues/Samarthjadhavsj/E-Waste-Management-System.svg?style=for-the-badge&logo=github)](https://github.com/Samarthjadhavsj/E-Waste-Management-System/issues)
+
+</div>
 
 ---
 
