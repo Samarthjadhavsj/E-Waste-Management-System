@@ -69,8 +69,8 @@
 - 🌍 **17 Certified Collection Centers** across major Indian cities
 - 📱 **Device Value Estimator** for smartphones, laptops, tablets, and PCs
 - 🗺️ **Turn-by-Turn Navigation** using Leaflet.js and OSRM routing
-- � **Seceure Authentication** with JWT tokens
-- 📈 **Real-time Analytics** for admins
+- 🔐 **Secure Authentication** with JWT tokens
+- � **RReal-time Analytics** for admins
 - 🎨 **Modern UI/UX** with Tailwind CSS
 - 📱 **Responsive Design** works on all devices
 
@@ -443,7 +443,7 @@ Distributed under the MIT License. See `LICENSE` for more information.
 ```
 MIT License
 
-Copyright (c) 2025 Samarth Jadhav
+Copyright (c) 2025 Samarth Jadhav, Mithilesh, Hemanth
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -456,27 +456,9 @@ in the Software without restriction...
 
 <div align="center">
 
-<table>
-<tr>
-<td align="center">
-<img src="https://github.com/Samarthjadhavsj.png" width="100px;" alt="Samarth A Jadhav"/><br />
-<sub><b>SAMARTH A JADHAV</b></sub><br />
-<a href="https://github.com/Samarthjadhavsj">💻 Developer</a>
-</td>
-<td align="center">
-<img src="https://via.placeholder.com/100/0d1117/39c463?text=M" width="100px;" alt="Mithilesh"/><br />
-<sub><b>MITHILESH</b></sub><br />
-💻 Developer
-</td>
-<td align="center">
-<img src="https://via.placeholder.com/100/0d1117/39c463?text=H" width="100px;" alt="Hemanth"/><br />
-<sub><b>HEMANTH</b></sub><br />
-💻 Developer
-</td>
-</tr>
-</table>
+### Development Team
 
-### Connect with the Team
+**SAMARTH A JADHAV** • **MITHILESH** • **HEMANTH**
 
 [![GitHub](https://img.shields.io/badge/GitHub-100000?style=for-the-badge&logo=github&logoColor=white)](https://github.com/Samarthjadhavsj)
 [![LinkedIn](https://img.shields.io/badge/LinkedIn-0077B5?style=for-the-badge&logo=linkedin&logoColor=white)](https://linkedin.com/in/samarthjadhavsj)
