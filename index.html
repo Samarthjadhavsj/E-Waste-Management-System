@@ -1,0 +1,1414 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>E-Waste Facility Locator — Store & Accounts</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Source+Sans+3:wght@400;600;700&family=Roboto+Mono:wght@400;500&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <link rel="stylesheet" href="style.css" />
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <link
+      rel="stylesheet"
+      href="https://unpkg.com/leaflet-control-geocoder/dist/Control.Geocoder.css"
+    />
+    <script src="https://unpkg.com/leaflet-control-geocoder/dist/Control.Geocoder.js"></script>
+
+    <style>
+        body { 
+            font-family: 'Source Sans 3', 'Source Sans Pro', -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif; 
+            -webkit-font-smoothing: antialiased; 
+            -moz-osx-font-smoothing: grayscale;
+            background: linear-gradient(135deg, rgba(240, 253, 244, 0.95) 0%, rgba(220, 252, 231, 0.95) 100%), 
+                        url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 800"><defs><pattern id="grid" width="40" height="40" patternUnits="userSpaceOnUse"><circle cx="20" cy="20" r="1" fill="%2322c55e" opacity="0.1"/></pattern></defs><rect width="1200" height="800" fill="url(%23grid)"/></svg>');
+            background-attachment: fixed;
+            background-size: cover;
+            color: #1a1a1a;
+            font-size: 15px;
+            line-height: 1.6;
+        }
+        #map {
+            height: 400px;
+            border-radius: 8px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+        }
+        .leaflet-control-geocoder {
+            border-radius: 6px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.3);
+        }
+        .fade-in { animation: fadeIn .2s ease-out forwards; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
+        
+        .hr-card {
+            background: #ffffff;
+            border: 1px solid #e1e4e8;
+            border-radius: 8px;
+            transition: all 0.2s ease;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+        }
+        .hr-card:hover {
+            border-color: #39c463;
+            box-shadow: 0 4px 16px rgba(57, 196, 99, 0.15);
+        }
+        .hr-btn {
+            background: #238636;
+            color: #ffffff;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 6px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+        .hr-btn:hover {
+            background: #2ea043;
+        }
+        .hr-btn-secondary {
+            background: #f6f8fa;
+            color: #24292f;
+            border: 1px solid #d0d7de;
+        }
+        .hr-btn-secondary:hover {
+            background: #f3f4f6;
+            border-color: #8b949e;
+        }
+        .hr-green { color: #1a7f37; }
+        .hr-text { color: #57606a; }
+        .hr-heading { color: #24292f; font-weight: 700; }
+    </style>
+</head>
+<body>
+    <div class="container mx-auto p-4 md:p-8">
+        <header class="flex items-center justify-between mb-8 pb-4" style="border-bottom: 1px solid #d0d7de;">
+            <div>
+                <h1 class="text-2xl md:text-3xl font-bold hr-green">E-Waste Facility Locator</h1>
+                <p class="text-sm hr-text mt-1">Locate certified collection points, earn points and redeem them in the eco-store.</p>
+            </div>
+            <nav class="space-x-2">
+                <button id="nav-home" class="px-4 py-2 rounded-lg hr-btn-secondary">Home</button>
+                <button id="nav-edump" class="px-4 py-2 rounded-lg hr-btn-secondary">E-Dump</button>
+                <button id="nav-store" class="px-4 py-2 rounded-lg hr-btn-secondary">Store</button>
+                <button id="nav-account" class="px-4 py-2 rounded-lg hr-btn-secondary">Account</button>
+                <button id="admin-btn" onclick="window.location.href='admin.html'" class="px-4 py-2 rounded-lg hr-btn-secondary hidden">Admin</button>
+                <button id="login-btn" class="px-4 py-2 rounded-lg hr-btn hidden">Logout</button>
+                <button id="open-login-btn" class="px-4 py-2 rounded-lg hr-btn">Login / Register</button>
+            </nav>
+        </header>
+
+        <!-- Status -->
+        <div id="location-status" class="mb-4 p-3 rounded-lg hr-card hidden" style="background: #dff6dd; border-color: #1a7f37;">
+            <i class="fas fa-info-circle mr-2 hr-green"></i><span id="status-text" class="hr-text"></span>
+        </div>
+
+        <!-- SPA views -->
+        <main>
+            <!-- HOME (DESCRIPTION, IMAGES, CONTACT + SCROLLABLE SUPPORT) -->
+            <section id="view-home" class="hr-card p-6 mb-6">
+                <!-- Hero Section -->
+                <div class="mb-8">
+                    <h2 class="text-3xl md:text-4xl font-bold mb-4" style="color: #24292f; letter-spacing: -0.5px;">
+                        Recycle Responsibly. <span class="hr-green">Earn Rewards.</span>
+                    </h2>
+                    <p class="text-base hr-text mb-5 leading-relaxed max-w-3xl">
+                        India's premier platform for certified e-waste recycling. Locate collection centers, 
+                        estimate device value, and earn eco-points redeemable for sustainable products.
+                    </p>
+                    <div class="flex gap-3">
+                        <button id="hero-edump" class="hr-btn px-5 py-2 rounded-lg font-semibold text-sm">
+                            <i class="fas fa-map-marker-alt mr-2"></i>Find Collection Centers
+                        </button>
+                        <button id="hero-store" class="hr-btn-secondary px-5 py-2 rounded-lg font-semibold text-sm">
+                            <i class="fas fa-store mr-2"></i>Browse Eco-Store
+                        </button>
+                    </div>
+                </div>
+
+                <div class="flex flex-col md:flex-row gap-8">
+                    <div class="md:w-2/3">
+                        <h3 class="text-xl font-bold mb-3 hr-heading">Why Choose E-Waste Recycling?</h3>
+                        <div class="grid grid-cols-1 md:grid-cols-3 gap-3 mb-5">
+                            <div class="p-3 rounded-lg" style="background: #f6f8fa; border: 1px solid #d0d7de;">
+                                <i class="fas fa-leaf text-xl hr-green mb-2 block"></i>
+                                <h4 class="font-semibold hr-heading mb-1 text-sm">Environmental Protection</h4>
+                                <p class="text-xs hr-text">Prevents toxic materials from contaminating soil and water</p>
+                            </div>
+                            <div class="p-3 rounded-lg" style="background: #f6f8fa; border: 1px solid #d0d7de;">
+                                <i class="fas fa-recycle text-xl hr-green mb-2 block"></i>
+                                <h4 class="font-semibold hr-heading mb-1 text-sm">Resource Recovery</h4>
+                                <p class="text-xs hr-text">Extracts valuable metals like gold, silver, and palladium</p>
+                            </div>
+                            <div class="p-3 rounded-lg" style="background: #f6f8fa; border: 1px solid #d0d7de;">
+                                <i class="fas fa-hands-helping text-xl hr-green mb-2 block"></i>
+                                <h4 class="font-semibold hr-heading mb-1 text-sm">Circular Economy</h4>
+                                <p class="text-xs hr-text">Supports sustainable livelihoods and green jobs</p>
+                            </div>
+                        </div>
+
+                        <h3 class="text-xl font-bold mb-3 hr-heading">Contact & Support</h3>
+                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-5">
+                            <div class="p-3 rounded-lg" style="background: #f6f8fa; border: 1px solid #d0d7de;">
+                                <p class="font-semibold hr-heading mb-1 text-sm">Email</p>
+                                <p class="text-xs hr-green"><a href="mailto:support@ewaste-locator.com" class="hover:underline">support@ewaste-locator.com</a></p>
+                                <p class="mt-1 text-xs hr-text">Response within 24–48 hours</p>
+                            </div>
+                            <div class="p-3 rounded-lg" style="background: #f6f8fa; border: 1px solid #d0d7de;">
+                                <p class="font-semibold hr-heading mb-1 text-sm">Phone</p>
+                                <p class="text-xs hr-text">+91 98765 43210</p>
+                                <p class="mt-1 text-xs hr-text">Mon — Fri, 9 AM — 6 PM IST</p>
+                            </div>
+                        </div>
+
+                        <div class="p-3 rounded-lg" style="background: #f6f8fa; border: 1px solid #d0d7de;">
+                            <h4 class="font-semibold hr-heading mb-2 text-sm">Quick Links</h4>
+                            <ul class="text-xs space-y-1">
+                                <li><button id="goto-edump" class="hr-green hover:underline text-left">→ Find Collection Centers</button></li>
+                                <li><button id="goto-store" class="hr-green hover:underline text-left">→ Browse Eco-Store</button></li>
+                                <li><button id="goto-account" class="hr-green hover:underline text-left">→ Manage Account</button></li>
+                            </ul>
+                        </div>
+                    </div>
+
+                    <div class="md:w-1/3">
+                        <h3 class="text-xl font-semibold mb-3 hr-heading">Gallery</h3>
+                        <div class="grid grid-cols-1 gap-3">
+                            <img src="https://www.jivamaterials.com/wp-content/uploads/2025/01/biodegradable-PCBs-1000x568.jpg" alt="E-Waste" class="rounded-lg h-32 w-full object-cover" style="border: 1px solid #d0d7de;">
+                            <img src="https://static.wixstatic.com/media/49bcab_8e6e56bbeab544689f0d7090d1ac1634~mv2.jpeg/v1/fill/w_852,h_518,al_c,lg_1,q_85,enc_avif,quality_auto/49bcab_8e6e56bbeab544689f0d7090d1ac1634~mv2.jpeg" alt="Eco Friendly" class="rounded-lg h-32 w-full object-cover" style="border: 1px solid #d0d7de;">
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- E-DUMP (moved home content: map + estimator) -->
+            <section id="view-edump" class="hidden hr-card p-6 mb-6">
+                <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                    <div>
+                        <h2 class="text-xl font-bold mb-3 hr-heading">Find a Collection Center</h2>
+                        <div class="relative">
+                            <div id="map" class="mb-4"></div>
+                            <div id="facility-suggestions" class="absolute top-14 left-2 right-2 z-[1000] hidden" style="max-width: 400px;">
+                                <div class="rounded-lg shadow-lg" style="background: #ffffff; border: 1px solid #d0d7de; max-height: 400px; overflow-y: auto;">
+                                    <div class="p-3 border-b" style="border-color: #d0d7de; background: #f6f8fa;">
+                                        <h3 class="text-sm font-semibold hr-heading">E-Waste Facilities in this Area</h3>
+                                    </div>
+                                    <div id="suggestions-list" class="p-2"></div>
+                                </div>
+                            </div>
+                        </div>
+                        <div id="nearest-facility" class="mt-3 hidden">
+                            <h3 class="text-lg font-semibold hr-green">Nearest Facility:</h3>
+                            <div id="facility-info" class="mt-2 p-3 rounded-lg" style="background: #f6f8fa; border: 1px solid #d0d7de;"></div>
+                        </div>
+                    </div>
+                    <div>
+                        <h2 class="text-xl font-bold mb-3 hr-heading">Estimate Your Device's Value</h2>
+                        <div class="flex flex-col sm:flex-row gap-4">
+                            <select id="device-select" class="w-full p-3 rounded-lg" style="background: #ffffff; border: 1px solid #d0d7de; color: #24292f;">
+                                <option value="">-- Select your device --</option>
+                                <option value="smartphone">Smartphone</option>
+                                <option value="laptop">Laptop</option>
+                                <option value="tablet">Tablet</option>
+                                <option value="desktop-pc">Desktop PC</option>
+                                <option value="smartwatch">Smartwatch</option>
+                                <option value="gaming-console">Gaming Console</option>
+                                <option value="tv">Television</option>
+                                <option value="monitor">Computer Monitor</option>
+                                <option value="keyboard">Keyboard</option>
+                                <option value="mouse">Mouse</option>
+                                <option value="printer">Printer</option>
+                                <option value="router">WiFi Router</option>
+                                <option value="camera">Digital Camera</option>
+                                <option value="headphones">Headphones</option>
+                                <option value="speaker">Bluetooth Speaker</option>
+                                <option value="hard-drive">External Hard Drive</option>
+                                <option value="power-bank">Power Bank</option>
+                                <option value="charger">Phone Charger</option>
+                                <option value="earbuds">Wireless Earbuds</option>
+                                <option value="drone">Drone</option>
+                            </select>
+                            <button id="calculate-credits-btn" class="hr-btn font-bold py-3 px-6 rounded-lg whitespace-nowrap">Calculate & Claim</button>
+                        </div>
+
+                        <div id="credit-results" class="hidden mt-6">
+                            <h3 class="text-lg font-semibold hr-heading mb-3">Estimated Recovery Value</h3>
+                            <div class="text-center p-4 my-3 rounded-lg" style="background: #f6f8fa; border: 1px solid #d0d7de;">
+                                <p class="text-4xl font-bold hr-green" id="credit-points">0</p>
+                                <p class="hr-text text-sm mt-1">Credit Points</p>
+                            </div>
+                            <div class="mb-4">
+                                <h4 class="font-semibold hr-heading mb-2">Precious Metals</h4>
+                                <ul id="precious-metals-list" class="list-disc list-inside hr-text space-y-1"></ul>
+                            </div>
+                            <div>
+                                <h4 class="font-semibold hr-heading mb-2">Harmful Components</h4>
+                                <ul id="harmful-components-list" class="list-disc list-inside hr-text space-y-1"></ul>
+                            </div>
+                            <p class="mt-4 text-sm hr-text">Click <strong class="hr-green">Calculate & Claim</strong> to both estimate and add points to your account (if logged in).</p>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- STORE -->
+            <section id="view-store" class="hidden hr-card p-6 mb-6">
+                <div class="flex justify-between items-center mb-6">
+                    <h2 class="text-xl font-bold hr-heading">Eco-Store (Redeem with points)</h2>
+                    <div class="space-x-3 flex items-center">
+                        <span class="text-sm hr-text">Your cart: <strong class="hr-green" id="cart-count">0</strong></span>
+                        <button id="view-cart-btn" class="hr-btn px-4 py-2 rounded-lg">View Cart</button>
+                    </div>
+                </div>
+                <div id="products-grid" class="grid grid-cols-1 md:grid-cols-3 gap-4"></div>
+            </section>
+
+            <!-- CART MODAL / PAGE -->
+            <div id="cart-modal" class="hidden fixed inset-0 flex justify-center items-center z-50" style="background: rgba(0, 0, 0, 0.5);">
+                <div class="rounded-lg p-6 w-[420px] shadow-2xl" style="background: #ffffff; border: 1px solid #d0d7de;">
+                    <div class="flex justify-between items-center mb-4">
+                        <h2 class="text-xl font-semibold hr-heading">Your Cart</h2>
+                        <button id="close-cart" class="hr-text text-2xl hover:text-black">&times;</button>
+                    </div>
+
+                    <p class="font-semibold mb-3 hr-text">
+                      Total Points: <span id="cart-total" class="hr-green">0</span>
+                    </p>
+
+                    <div id="cart-items" class="pt-2 mb-4 max-h-48 overflow-y-auto" style="border-top: 1px solid #d0d7de;"></div>
+
+    <!-- ✅ Address Input Box -->
+                    <label for="delivery-address" class="block hr-heading font-medium mb-2">
+                    Delivery Address
+                    </label>
+                    <textarea id="delivery-address" rows="3"
+                      class="w-full rounded-md p-3 text-sm mb-4 focus:outline-none focus:ring-2 focus:ring-green-500"
+                      style="background: #ffffff; border: 1px solid #d0d7de; color: #24292f;"
+                      placeholder="Enter your delivery address here..."></textarea>
+
+                    <div class="flex justify-end space-x-2">
+                        <button id="close-cart-bottom" class="hr-btn-secondary px-4 py-2 rounded-md">
+                             Close
+                        </button>
+                        <button id="checkout-btn" class="hr-btn px-4 py-2 rounded-md">
+                            Checkout with Points
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- QUANTITY MODAL -->
+            <div id="quantity-modal" class="hidden fixed inset-0 flex items-center justify-center z-50" style="background: rgba(0, 0, 0, 0.5);">
+                <div class="rounded-xl shadow-2xl p-6 w-full max-w-md fade-in" style="background: #ffffff; border: 1px solid #d0d7de;">
+                    <div class="flex justify-between items-center mb-4">
+                        <h3 class="text-lg font-semibold hr-heading">Select Quantity</h3>
+                        <button id="close-quantity" class="hr-text text-2xl hover:text-black">&times;</button>
+                    </div>
+                    
+                    <div class="mb-4">
+                        <div class="flex items-center gap-3 mb-3">
+                            <img id="qty-product-img" src="" alt="" class="w-16 h-16 rounded" style="border: 1px solid #d0d7de;">
+                            <div>
+                                <h4 class="font-semibold hr-heading text-sm" id="qty-product-name"></h4>
+                                <p class="text-xs hr-text" id="qty-product-price"></p>
+                            </div>
+                        </div>
+                        
+                        <div class="p-3 rounded-lg mb-3" style="background: #f6f8fa; border: 1px solid #d0d7de;">
+                            <p class="text-sm hr-text">Available Stock: <span class="hr-green font-semibold" id="qty-available-stock">0</span></p>
+                            <p class="text-xs hr-text mt-1">Maximum order limit: <span class="font-semibold" id="qty-max-limit">0</span> units</p>
+                        </div>
+                        
+                        <label class="block hr-heading font-medium mb-2 text-sm">Quantity</label>
+                        <div class="flex items-center gap-3">
+                            <button id="qty-decrease" class="hr-btn-secondary px-4 py-2 rounded-lg text-lg font-bold">−</button>
+                            <input type="number" id="qty-input" value="1" min="1" class="w-20 text-center p-2 rounded-lg font-semibold" style="background: #ffffff; border: 1px solid #d0d7de; color: #24292f;" readonly>
+                            <button id="qty-increase" class="hr-btn-secondary px-4 py-2 rounded-lg text-lg font-bold">+</button>
+                        </div>
+                    </div>
+                    
+                    <div class="flex justify-end space-x-2">
+                        <button id="qty-cancel" class="hr-btn-secondary px-4 py-2 rounded-md">Cancel</button>
+                        <button id="qty-confirm" class="hr-btn px-4 py-2 rounded-md">Add to Cart</button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- ACCOUNT -->
+            <section id="view-account" class="hidden hr-card p-6 mb-6">
+                <div id="account-unauth" class="space-y-3">
+                    <h2 class="text-xl font-bold hr-heading">Account</h2>
+                    <p class="hr-text">You are not logged in. Please <button id="open-login-btn-2" class="hr-green hover:underline">Login</button> or Register to collect & redeem points.</p>
+                </div>
+                <div id="account-auth" class="hidden space-y-4">
+                    <div class="flex items-center justify-between">
+                        <div>
+                            <h2 class="text-xl font-bold hr-heading" id="account-username"></h2>
+                            <p class="text-sm hr-text" id="account-email"></p>
+                        </div>
+                        <div class="text-right">
+                            <p class="text-sm hr-text">Available Points</p>
+                            <p class="text-3xl font-bold hr-green" id="account-points">0</p>
+                        </div>
+                    </div>
+                    <div>
+                        <h3 class="font-semibold hr-heading mb-3">Transaction History</h3>
+                        <div id="tx-history" class="mt-2 space-y-2 max-h-48 overflow-auto text-sm"></div>
+                    </div>
+                </div>
+            </section>
+        </main>
+
+        <!-- LOGIN / REGISTER MODAL -->
+        <div id="auth-modal" class="fixed inset-0 flex items-center justify-center p-4 hidden z-50" style="background: rgba(0, 0, 0, 0.5);">
+            <div class="rounded-xl shadow-2xl p-6 w-full max-w-md fade-in" style="background: #ffffff; border: 1px solid #d0d7de;">
+                <div class="flex justify-between items-center mb-4">
+                    <h3 class="text-lg font-semibold hr-heading" id="auth-title">Login</h3>
+                    <button id="close-auth" class="hr-text text-2xl hover:text-black">&times;</button>
+                </div>
+                <div id="auth-forms">
+                    <form id="login-form" class="space-y-4">
+                        <input id="login-email" placeholder="Email" type="email" class="w-full p-3 rounded-lg" style="background: #ffffff; border: 1px solid #d0d7de; color: #24292f;" required />
+                        <input id="login-password" placeholder="Password" type="password" class="w-full p-3 rounded-lg" style="background: #ffffff; border: 1px solid #d0d7de; color: #24292f;" required />
+                        <div class="flex justify-between items-center">
+                            <button type="submit" class="hr-btn px-5 py-2 rounded-lg">Login</button>
+                            <button id="show-register" type="button" class="text-sm hr-green hover:underline">New user? Register</button>
+                        </div>
+                    </form>
+
+                    <form id="register-form" class="space-y-4 hidden">
+                        <input id="reg-name" placeholder="Full name" type="text" class="w-full p-3 rounded-lg" style="background: #ffffff; border: 1px solid #d0d7de; color: #24292f;" required />
+                        <input id="reg-email" placeholder="Email" type="email" class="w-full p-3 rounded-lg" style="background: #ffffff; border: 1px solid #d0d7de; color: #24292f;" required />
+                        <input id="reg-password" placeholder="Password" type="password" class="w-full p-3 rounded-lg" style="background: #ffffff; border: 1px solid #d0d7de; color: #24292f;" required />
+                        <div class="flex justify-between items-center">
+                            <button type="submit" class="hr-btn px-5 py-2 rounded-lg">Register</button>
+                            <button id="show-login" type="button" class="text-sm hr-green hover:underline">Already have an account? Login</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+
+    </div>
+
+<script>
+// ----------------- Data -----------------
+const deviceMetalsDB = {
+    'smartphone': { precious: { 'Gold': '0.034', 'Silver': '0.35', 'Palladium': '0.015' }, harmful: { 'Lead': 'Can damage nervous systems', 'Mercury': 'Toxic to organs and nervous system' } },
+    'laptop': { precious: { 'Gold': '0.2', 'Silver': '1.0', 'Palladium': '0.05' }, harmful: { 'Lead': 'Found in solder and batteries', 'Cadmium': 'Used in rechargeable batteries, toxic' } },
+    'tablet': { precious: { 'Gold': '0.05', 'Silver': '0.5', 'Palladium': '0.02' }, harmful: { 'Lead': 'Present in circuit boards', 'Brominated Flame Retardants': 'Can disrupt hormone functions' } },
+    'desktop-pc': { precious: { 'Gold': '0.5', 'Silver': '2.5', 'Palladium': '0.1' }, harmful: { 'Lead': 'High amounts in CRT monitors', 'Mercury': 'Used in switches and flat-screen monitors' } },
+    'smartwatch': { precious: { 'Gold': '0.02', 'Silver': '0.15', 'Palladium': '0.008' }, harmful: { 'Lead': 'In circuit boards', 'Lithium': 'Battery component, flammable' } },
+    'gaming-console': { precious: { 'Gold': '0.3', 'Silver': '1.5', 'Palladium': '0.06' }, harmful: { 'Lead': 'Solder and components', 'Cadmium': 'In batteries and displays' } },
+    'tv': { precious: { 'Gold': '0.15', 'Silver': '1.2', 'Palladium': '0.04' }, harmful: { 'Lead': 'CRT tubes and circuit boards', 'Mercury': 'LCD backlights' } },
+    'monitor': { precious: { 'Gold': '0.12', 'Silver': '0.8', 'Palladium': '0.03' }, harmful: { 'Lead': 'Circuit boards', 'Mercury': 'LCD backlights' } },
+    'keyboard': { precious: { 'Gold': '0.01', 'Silver': '0.08', 'Copper': '0.5' }, harmful: { 'Lead': 'Circuit boards', 'PVC': 'Cable insulation' } },
+    'mouse': { precious: { 'Gold': '0.008', 'Silver': '0.05', 'Copper': '0.3' }, harmful: { 'Lead': 'Circuit boards', 'PVC': 'Cable coating' } },
+    'printer': { precious: { 'Gold': '0.1', 'Silver': '0.6', 'Palladium': '0.025' }, harmful: { 'Lead': 'Circuit boards', 'Toner': 'Contains plastic particles' } },
+    'router': { precious: { 'Gold': '0.015', 'Silver': '0.12', 'Copper': '0.4' }, harmful: { 'Lead': 'Circuit boards', 'Brominated Flame Retardants': 'Plastic casing' } },
+    'camera': { precious: { 'Gold': '0.025', 'Silver': '0.2', 'Palladium': '0.01' }, harmful: { 'Lead': 'Circuit boards', 'Lithium': 'Battery component' } },
+    'headphones': { precious: { 'Gold': '0.005', 'Silver': '0.04', 'Copper': '0.2' }, harmful: { 'Lead': 'Wiring and solder', 'PVC': 'Cable insulation' } },
+    'speaker': { precious: { 'Gold': '0.012', 'Silver': '0.1', 'Copper': '0.6' }, harmful: { 'Lead': 'Circuit boards', 'Lithium': 'Battery component' } },
+    'hard-drive': { precious: { 'Gold': '0.04', 'Silver': '0.3', 'Palladium': '0.015' }, harmful: { 'Lead': 'Circuit boards', 'Neodymium': 'Rare earth magnets' } },
+    'power-bank': { precious: { 'Gold': '0.008', 'Silver': '0.06', 'Copper': '0.25' }, harmful: { 'Lithium': 'Battery cells, flammable', 'Lead': 'Circuit boards' } },
+    'charger': { precious: { 'Gold': '0.003', 'Silver': '0.02', 'Copper': '0.15' }, harmful: { 'Lead': 'Circuit boards', 'PVC': 'Cable insulation' } },
+    'earbuds': { precious: { 'Gold': '0.004', 'Silver': '0.03', 'Copper': '0.1' }, harmful: { 'Lithium': 'Battery component', 'Lead': 'Circuit boards' } },
+    'drone': { precious: { 'Gold': '0.06', 'Silver': '0.4', 'Palladium': '0.02' }, harmful: { 'Lithium': 'Battery packs, flammable', 'Lead': 'Circuit boards' } }
+};
+const facilities = [
+  // ---------- BENGALURU ----------
+  {
+    name: "Eco Globe E-Waste Recyclers",
+    address: "Plot No. 87, 2nd Phase, 2nd Sector, Ramanagar, Bidadi Industrial Area, Bengaluru 562109",
+    lat: 12.8275,
+    lng: 77.4498
+  },
+  {
+    name: "Eco-Ewaste Recyclers India Pvt Ltd",
+    address: "41/1, 42/2, 19 & 20, Mutachari Industrial Estate, Mysore Road, Bengaluru 560039",
+    lat: 12.9505,
+    lng: 77.5440
+  },
+  {
+    name: "Trishyirya Recycling India Pvt. Ltd.",
+    address: "4th Phase, Peenya Industrial Estate, Bengaluru 560058",
+    lat: 13.0150,
+    lng: 77.4900
+  },
+  {
+    name: "Samarthanam Trust for the Disabled (Peenya)",
+    address: "No. 66, 6th main, 3rd Phase, Peenya Industrial Area, Bengaluru 560058",
+    lat: 13.0140,
+    lng: 77.4895
+  },
+  {
+    name: "E-Ward & Co.",
+    address: "No.6/1B, 14th Cross, Hosur Road, Bommanahalli, Bengaluru 560068",
+    lat: 12.9250,
+    lng: 77.6240
+  },
+
+  // ---------- HYDERABAD ----------
+  {
+    name: "Ramky E-Waste Recycling Facility",
+    address: "Plot No. 38, IDA Mallapur, Hyderabad 500076",
+    lat: 17.4474,
+    lng: 78.5751
+  },
+  {
+    name: "Green India Recycling",
+    address: "IDA Cherlapally Phase 2, Hyderabad 500051",
+    lat: 17.4790,
+    lng: 78.6046
+  },
+
+  // ---------- CHENNAI ----------
+  {
+    name: "E-Parisaraa Pvt Ltd (Chennai Unit)",
+    address: "No. 16, Vyasarpadi Industrial Estate, Chennai 600039",
+    lat: 13.1130,
+    lng: 80.2580
+  },
+  {
+    name: "TES-AMM India",
+    address: "Kandanchavadi, Old Mahabalipuram Road, Chennai 600096",
+    lat: 12.9670,
+    lng: 80.2450
+  },
+
+  // ---------- MUMBAI ----------
+  {
+    name: "EcoCentric Management Pvt Ltd",
+    address: "Saki Naka, Andheri East, Mumbai 400072",
+    lat: 19.1024,
+    lng: 72.8826
+  },
+  {
+    name: "Ecoreco (Eco Recycling Ltd)",
+    address: "Andheri – Kurla Road, Mumbai 400059",
+    lat: 19.1123,
+    lng: 72.8697
+  },
+
+  // ---------- DELHI NCR ----------
+  {
+    name: "Cerebra Integrated Technologies",
+    address: "Plot 110, Ecotech III, Greater Noida, Delhi NCR 201306",
+    lat: 28.4950,
+    lng: 77.5250
+  },
+  {
+    name: "Karo Sambhav Collection Center",
+    address: "Okhla Industrial Estate, New Delhi 110020",
+    lat: 28.5505,
+    lng: 77.2684
+  },
+
+  // ---------- PUNE ----------
+  {
+    name: "SWaCH E-Waste Collection Center",
+    address: "Aundh, Pune 411007",
+    lat: 18.5603,
+    lng: 73.8077
+  },
+  {
+    name: "Cummins India Recycling Unit",
+    address: "Kothrud Industrial Area, Pune 411038",
+    lat: 18.5074,
+    lng: 73.8077
+  },
+
+  // ---------- KOLKATA ----------
+  {
+    name: "Hulladek Recycling Pvt Ltd",
+    address: "192, Shyama Prasad Mukherjee Road, Kolkata 700026",
+    lat: 22.5090,
+    lng: 88.3520
+  },
+  {
+    name: "Greenwaves Environmental Solutions",
+    address: "Budge Budge Trunk Road, Kolkata 700137",
+    lat: 22.4713,
+    lng: 88.1803
+  }
+];
+
+
+// Products will be loaded from database via loadProducts()
+const productsOld = [
+  { 
+    id: 1, 
+    name: 'Bamboo Toothbrush (Pack)', 
+    price: 120, 
+    desc: 'Eco-friendly bamboo toothbrushes (pack of 4).', 
+    img: "https://i.postimg.cc/5y73DVV6/Gemini-Generated-Image-yq043pyq043pyq04-1.png", 
+    height: 200, 
+    width: 200,
+    stock: 50,
+    maxOrder: 10
+  },
+  { 
+    id: 2, 
+    name: 'Reusable Tote Bag', 
+    price: 200, 
+    desc: 'Sturdy reusable shopping bag.', 
+    img: 'https://i.postimg.cc/Pr0bDKrT/Gemini-Generated-Image-yq043pyq043pyq04-2.png', 
+    height: 200, 
+    width: 200,
+    stock: 75,
+    maxOrder: 15
+  },
+  { 
+    id: 3, 
+    name: 'Solar Power Bank', 
+    price: 1200, 
+    desc: 'Portable solar charging bank.', 
+    img: 'https://i.postimg.cc/02KD9mGS/Gemini-Generated-Image-yq043pyq043pyq04-3.png', 
+    height: 200, 
+    width: 200,
+    stock: 30,
+    maxOrder: 5
+  },
+  { 
+    id: 4, 
+    name: 'Recycled Notebook', 
+    price: 80, 
+    desc: 'Notebook made from recycled paper.', 
+    img: 'https://i.postimg.cc/4y77Nkch/Gemini-Generated-Image-yq043pyq043pyq04.png', 
+    height: 200, 
+    width: 200,
+    stock: 100,
+    maxOrder: 20
+  },
+  {
+    id: 5, 
+    name: 'Ecofriendly photo frame', 
+    price: 250, 
+    desc: 'photo frame made from recycled wood.', 
+    img: 'https://i.postimg.cc/MKwdHq53/Gemini-Generated-Image-ih0xyqih0xyqih0x-1.png', 
+    height: 200, 
+    width: 200,
+    stock: 45,
+    maxOrder: 8
+},
+{
+    id: 6, 
+    name: 'Ecofriendly mobile holder', 
+    price: 300, 
+    desc: 'mobile phone holder made from recycled wood.', 
+    img: 'https://i.postimg.cc/DwJJKbsh/Gemini-Generated-Image-xnk2hxxnk2hxxnk2.png', 
+    height: 200, 
+    width: 200,
+    stock: 60,
+    maxOrder: 10
+},
+{
+    id: 7,
+    name: 'Stainless Steel Water Bottle',
+    price: 450,
+    desc: 'Reusable insulated water bottle.',
+    img: 'https://images.unsplash.com/photo-1602143407151-7111542de6e8?w=400&h=400&fit=crop',
+    height: 200,
+    width: 200,
+    stock: 40,
+    maxOrder: 8
+},
+{
+    id: 8,
+    name: 'Organic Cotton T-Shirt',
+    price: 600,
+    desc: '100% organic cotton eco-friendly t-shirt.',
+    img: 'https://images.unsplash.com/photo-1521572163474-6864f9cf17ab?w=400&h=400&fit=crop',
+    height: 200,
+    width: 200,
+    stock: 55,
+    maxOrder: 10
+},
+{
+    id: 9,
+    name: 'Bamboo Cutlery Set',
+    price: 180,
+    desc: 'Portable bamboo utensils with carrying case.',
+    img: 'https://images.unsplash.com/photo-1610701596007-11502861dcfa?w=400&h=400&fit=crop',
+    height: 200,
+    width: 200,
+    stock: 80,
+    maxOrder: 15
+},
+{
+    id: 10,
+    name: 'Beeswax Food Wraps',
+    price: 220,
+    desc: 'Reusable alternative to plastic wrap (set of 3).',
+    img: 'https://images.unsplash.com/photo-1591088398332-8a7791972843?w=400&h=400&fit=crop',
+    height: 200,
+    width: 200,
+    stock: 70,
+    maxOrder: 12
+},
+{
+    id: 11,
+    name: 'Recycled Yoga Mat',
+    price: 800,
+    desc: 'Eco-friendly yoga mat from recycled materials.',
+    img: 'https://images.unsplash.com/photo-1601925260368-ae2f83cf8b7f?w=400&h=400&fit=crop',
+    height: 200,
+    width: 200,
+    stock: 25,
+    maxOrder: 5
+},
+{
+    id: 12,
+    name: 'Plant-Based Soap Set',
+    price: 150,
+    desc: 'Natural handmade soap bars (pack of 3).',
+    img: 'https://images.unsplash.com/photo-1600857062241-98e5dba7f214?w=400&h=400&fit=crop',
+    height: 200,
+    width: 200,
+    stock: 90,
+    maxOrder: 18
+}
+
+];
+
+// ----------------- Users & Auth -----------------
+function readUsers() { return JSON.parse(localStorage.getItem('ewaste_users') || '[]'); }
+function writeUsers(users) { localStorage.setItem('ewaste_users', JSON.stringify(users)); }
+function getCurrentUserEmail() { return localStorage.getItem('ewaste_current_user'); }
+function setCurrentUser(email) { localStorage.setItem('ewaste_current_user', email); }
+function logoutUser() { localStorage.removeItem('ewaste_current_user'); }
+function findUserByEmail(email) { return readUsers().find(u => u.email === email); }
+function saveUser(user) { const users = readUsers(); const idx = users.findIndex(u => u.email === user.email); if (idx >= 0) users[idx] = user; else users.push(user); writeUsers(users); }
+
+// ----------------- SPA Navigation -----------------
+const viewHome = document.getElementById('view-home');
+const viewEdump = document.getElementById('view-edump');
+const viewStore = document.getElementById('view-store');
+const viewAccount = document.getElementById('view-account');
+const openLoginBtn = document.getElementById('open-login-btn');
+const openLoginBtn2 = document.getElementById('open-login-btn-2');
+const loginBtn = document.getElementById('login-btn');
+
+let map; // Leaflet map
+function showView(view){
+    try {
+        console.log('showView called with:', view);
+        // hide all
+        viewHome.classList.add('hidden'); 
+        viewEdump.classList.add('hidden'); 
+        viewStore.classList.add('hidden'); 
+        viewAccount.classList.add('hidden');
+        // show requested
+        view.classList.remove('hidden');
+
+        // init map when showing E-Dump
+        if(view === viewEdump){
+            if(!map){ initMap(); } 
+            else { setTimeout(()=>map.invalidateSize(), 200); }
+        }
+    } catch(error) {
+        console.error('Error in showView:', error);
+        alert('Navigation error: ' + error.message);
+    }
+}
+
+document.getElementById('nav-home').addEventListener('click', () => {
+    console.log('Home clicked');
+    showView(viewHome);
+});
+document.getElementById('nav-edump').addEventListener('click', () => {
+    console.log('E-Dump clicked');
+    showView(viewEdump);
+});
+document.getElementById('nav-store').addEventListener('click', () => {
+    console.log('Store clicked');
+    showView(viewStore);
+});
+document.getElementById('nav-account').addEventListener('click', async () => { 
+    console.log('Account clicked');
+    showView(viewAccount);
+    // Force refresh from database
+    const token = localStorage.getItem('ewaste_token');
+    if(token) {
+        try {
+            const response = await fetch('/api/users/me', {
+                headers: { 'Authorization': `Bearer ${token}` }
+            });
+            if(response.ok) {
+                const user = await response.json();
+                localStorage.setItem('ewaste_user', JSON.stringify(user));
+                document.getElementById('account-points').textContent = user.points;
+            }
+        } catch(error) {
+            console.error('Error refreshing user data:', error);
+        }
+    }
+    await updateAuthState();
+});
+
+// quick links from home
+document.getElementById('goto-edump').addEventListener('click', ()=> showView(viewEdump));
+document.getElementById('goto-store').addEventListener('click', ()=> showView(viewStore));
+document.getElementById('goto-account').addEventListener('click', ()=> showView(viewAccount));
+
+// hero buttons
+document.getElementById('hero-edump').addEventListener('click', ()=> showView(viewEdump));
+document.getElementById('hero-store').addEventListener('click', ()=> showView(viewStore));
+
+// ----------------- Auth Modal -----------------
+const authModal = document.getElementById('auth-modal');
+const closeAuth = document.getElementById('close-auth');
+const authTitle = document.getElementById('auth-title');
+const loginForm = document.getElementById('login-form');
+const registerForm = document.getElementById('register-form');
+const showRegisterBtn = document.getElementById('show-register');
+const showLoginBtn = document.getElementById('show-login');
+
+function openAuth(mode='login'){
+    authModal.classList.remove('hidden');
+    if(mode==='login'){ authTitle.textContent='Login'; loginForm.classList.remove('hidden'); registerForm.classList.add('hidden'); }
+    else { authTitle.textContent='Register'; loginForm.classList.add('hidden'); registerForm.classList.remove('hidden'); }
+}
+openLoginBtn.addEventListener('click', ()=>openAuth('login'));
+openLoginBtn2?.addEventListener('click', ()=>openAuth('login'));
+closeAuth.addEventListener('click', ()=>authModal.classList.add('hidden'));
+showRegisterBtn.addEventListener('click', ()=>openAuth('register'));
+showLoginBtn.addEventListener('click', ()=>openAuth('login'));
+
+// ----------------- Register/Login -----------------
+registerForm.addEventListener('submit', async (e)=>{
+    e.preventDefault();
+    const name = document.getElementById('reg-name').value.trim();
+    const email = document.getElementById('reg-email').value.trim().toLowerCase();
+    const password = document.getElementById('reg-password').value;
+    
+    try {
+        const response = await fetch('/api/auth/register', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ name, email, password })
+        });
+        
+        const data = await response.json();
+        
+        if(response.ok) {
+            localStorage.setItem('ewaste_token', data.token);
+            localStorage.setItem('ewaste_user', JSON.stringify(data.user));
+            setCurrentUser(email);
+            updateAuthState();
+            authModal.classList.add('hidden');
+            alert('Registered & logged in successfully!');
+        } else {
+            alert(data.error || 'Registration failed');
+        }
+    } catch(error) {
+        alert('Error: ' + error.message);
+    }
+});
+
+loginForm.addEventListener('submit', async (e)=>{
+    e.preventDefault();
+    const email = document.getElementById('login-email').value.trim().toLowerCase();
+    const password = document.getElementById('login-password').value;
+    
+    try {
+        const response = await fetch('/api/auth/login', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ email, password })
+        });
+        
+        const data = await response.json();
+        
+        if(response.ok) {
+            localStorage.setItem('ewaste_token', data.token);
+            localStorage.setItem('ewaste_user', JSON.stringify(data.user));
+            
+            // Redirect based on role
+            if(data.user.role === 'admin') {
+                alert('Welcome Admin! Redirecting to admin dashboard...');
+                window.location.href = '/admin.html';
+            } else {
+                setCurrentUser(email);
+                updateAuthState();
+                authModal.classList.add('hidden');
+                alert('Logged in successfully!');
+            }
+        } else {
+            alert(data.error || 'Login failed');
+        }
+    } catch(error) {
+        alert('Error: ' + error.message);
+    }
+});
+loginBtn.addEventListener('click', ()=>{ logoutUser(); updateAuthState(); });
+
+// ----------------- Update Auth State -----------------
+async function updateAuthState(){
+    const current = getCurrentUserEmail();
+    if(current){
+        let u = JSON.parse(localStorage.getItem('ewaste_user') || 'null');
+        
+        // Fetch latest user data from database
+        try {
+            const token = localStorage.getItem('ewaste_token');
+            if(token) {
+                const response = await fetch('/api/users/me', {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                if(response.ok) {
+                    u = await response.json();
+                    localStorage.setItem('ewaste_user', JSON.stringify(u));
+                }
+            }
+        } catch(error) {
+            console.error('Error fetching user:', error);
+            u = u || findUserByEmail(current);
+        }
+        
+        document.getElementById('account-username').textContent = u?.name || 'User';
+        document.getElementById('account-email').textContent = current;
+        document.getElementById('account-points').textContent = u?.points || 0;
+        // tx history
+        const txDiv = document.getElementById('tx-history'); txDiv.innerHTML='';
+        const transactions = u?.transactions || u?.tx || [];
+        transactions.slice().reverse().forEach(t=>{
+            const d = document.createElement('div'); d.className='p-3 rounded';
+            d.style.cssText = 'background: #f6f8fa; border: 1px solid #d0d7de;';
+            d.innerHTML = `<div class="text-sm hr-heading"><strong>${t.device || t.action || 'Activity'}</strong> — <span class="hr-green">${t.points || ''} pts</span></div><div class="text-xs hr-text mt-1">${t.date}</div>`;
+            txDiv.appendChild(d);
+        });
+
+        document.getElementById('account-unauth').classList.add('hidden');
+        document.getElementById('account-auth').classList.remove('hidden');
+        loginBtn.classList.remove('hidden');
+        openLoginBtn.classList.add('hidden');
+        openLoginBtn2?.classList.add('hidden');
+        
+        // Show Admin button only for admin users
+        const adminBtn = document.getElementById('admin-btn');
+        if (u?.role === 'admin') {
+            adminBtn.classList.remove('hidden');
+        } else {
+            adminBtn.classList.add('hidden');
+        }
+    } else {
+        document.getElementById('account-unauth').classList.remove('hidden');
+        document.getElementById('account-auth').classList.add('hidden');
+        loginBtn.classList.add('hidden');
+        openLoginBtn.classList.remove('hidden');
+        openLoginBtn2?.classList.remove('hidden');
+        
+        // Hide Admin button when logged out
+        document.getElementById('admin-btn').classList.add('hidden');
+    }
+}
+updateAuthState();
+
+// ----------------- Leaflet Map -----------------
+
+let currentRoute = null;
+let userLocation = null;
+
+function initMap() {
+            // Initialize map
+    map = L.map('map').setView([20, 78], 5);
+
+            // Base layer
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            attribution: '&copy; OpenStreetMap contributors'
+        }).addTo(map);
+
+            // Facility locations (example data)
+        const facilities = [
+            { name:"Eco Globe E-Waste Recyclers", lat:12.8275, lng:77.4498, address:"Bidadi Industrial Area, Bengaluru 562109" },
+            { name:"Eco-Ewaste Recyclers India Pvt Ltd", lat:12.9505, lng:77.5440, address:"Mysore Road, Bengaluru 560039" },
+            { name:"Trishyirya Recycling India Pvt. Ltd.", lat:13.0150, lng:77.4900, address:"Peenya Industrial Estate, Bengaluru 560058" },
+            { name:"Samarthanam Trust for the Disabled (Peenya)", lat:13.0140, lng:77.4895, address:"Peenya Industrial Area, Bengaluru 560058" },
+            { name:"E-Ward & Co.", lat:12.9250, lng:77.6240, address:"Bommanahalli, Bengaluru 560068" },
+            { name:"Ramky E-Waste Recycling Facility", lat:17.4474, lng:78.5751, address:"IDA Mallapur, Hyderabad 500076" },
+            { name:"Green India Recycling", lat:17.4790, lng:78.6046, address:"IDA Cherlapally Phase 2, Hyderabad 500051" },
+            { name:"E-Parisaraa Pvt Ltd (Chennai Unit)", lat:13.1130, lng:80.2580, address:"Vyasarpadi Industrial Estate, Chennai 600039" },
+            { name:"TES-AMM India", lat:12.9670, lng:80.2450, address:"Old Mahabalipuram Road, Chennai 600096" },
+            { name:"EcoCentric Management Pvt Ltd", lat:19.1024, lng:72.8826, address:"Saki Naka, Andheri East, Mumbai 400072" },
+            { name:"Ecoreco (Eco Recycling Ltd)", lat:19.1123, lng:72.8697, address:"Andheri-Kurla Road, Mumbai 400059" },
+            { name:"Cerebra Integrated Technologies", lat:28.4950, lng:77.5250, address:"Ecotech III, Greater Noida, Delhi NCR 201306" },
+            { name:"Karo Sambhav Collection Center", lat:28.5505, lng:77.2684, address:"Okhla Industrial Estate, New Delhi 110020" },
+            { name:"SWaCH E-Waste Collection Center", lat:18.5603, lng:73.8077, address:"Aundh, Pune 411007" },
+            { name:"Cummins India Recycling Unit", lat:18.5074, lng:73.8077, address:"Kothrud Industrial Area, Pune 411038" },
+            { name:"Hulladek Recycling Pvt Ltd", lat:22.5090, lng:88.3520, address:"Shyama Prasad Mukherjee Road, Kolkata 700026" },
+            { name:"Greenwaves Environmental Solutions", lat:22.4713, lng:88.1803, address:"Budge Budge Trunk Road, Kolkata 700137" }
+        ];
+
+
+
+            // Add facility markers with routing
+        facilities.forEach(facility => {
+            const marker = L.marker([facility.lat, facility.lng])
+              .addTo(map)
+              .bindPopup(`
+                <div>
+                  <b>${facility.name}</b><br>
+                  ${facility.address}<br><br>
+                  <button onclick="showRouteTo(${facility.lat}, ${facility.lng}, '${facility.name}')" 
+                    style="background: #1a7f37; color: white; padding: 6px 12px; border-radius: 4px; border: none; cursor: pointer; font-weight: 600;">
+                    🗺️ Show Route
+                  </button>
+                </div>
+              `);
+        });
+
+            // Add Geocoder (Search bar)
+        const geocoder = L.Control.geocoder({
+            defaultMarkGeocode: false,
+            placeholder: "Search for a city, area, or address...",
+            collapsed: false
+        })
+        .on('markgeocode', function(e) {
+            const center = e.geocode.center;
+            const searchLat = center.lat;
+            const searchLng = center.lng;
+            
+            L.marker(center)
+                .addTo(map)
+                .bindPopup(`<b>${e.geocode.name}</b>`)
+                .openPopup();
+            map.setView(center, 12);
+            
+            // Show nearby facilities
+            showNearbyFacilities(searchLat, searchLng, e.geocode.name);
+        })
+        .addTo(map);
+    }
+
+// Show facilities near searched location
+function showNearbyFacilities(lat, lng, locationName) {
+    const suggestionsList = document.getElementById('suggestions-list');
+    const suggestionsContainer = document.getElementById('facility-suggestions');
+    suggestionsList.innerHTML = '';
+    
+    // Calculate distances and sort
+    const facilitiesWithDistance = facilities.map(f => {
+        const distance = calculateDistance(lat, lng, f.lat, f.lng);
+        return { ...f, distance };
+    }).sort((a, b) => a.distance - b.distance);
+    
+    // Show facilities within 100km
+    const nearbyFacilities = facilitiesWithDistance.filter(f => f.distance < 100);
+    
+    if (nearbyFacilities.length > 0) {
+        suggestionsContainer.classList.remove('hidden');
+        nearbyFacilities.forEach((facility, index) => {
+            const div = document.createElement('div');
+            div.className = 'p-2 cursor-pointer transition';
+            div.style.cssText = 'background: #ffffff; border-bottom: 1px solid #e1e4e8;';
+            div.onmouseenter = function() { this.style.background = '#f6f8fa'; };
+            div.onmouseleave = function() { this.style.background = '#ffffff'; };
+            div.onclick = function() {
+                map.setView([facility.lat, facility.lng], 15);
+                L.popup()
+                    .setLatLng([facility.lat, facility.lng])
+                    .setContent(`<b>${facility.name}</b><br>${facility.address}`)
+                    .openOn(map);
+                suggestionsContainer.classList.add('hidden');
+            };
+            
+            // Remove border from last item
+            if (index === nearbyFacilities.length - 1) {
+                div.style.borderBottom = 'none';
+            }
+            
+            div.innerHTML = `
+                <div class="flex justify-between items-start gap-2">
+                    <div class="flex-1">
+                        <h4 class="font-semibold hr-heading text-xs">${facility.name}</h4>
+                        <p class="text-xs hr-text mt-0.5" style="font-size: 11px;">${facility.address}</p>
+                    </div>
+                    <div class="text-right flex-shrink-0">
+                        <span class="text-xs hr-green font-semibold">${facility.distance.toFixed(1)} km</span>
+                    </div>
+                </div>
+            `;
+            suggestionsList.appendChild(div);
+        });
+    } else {
+        suggestionsContainer.classList.add('hidden');
+    }
+}
+
+// Close suggestions when clicking outside
+document.addEventListener('click', function(e) {
+    const suggestionsContainer = document.getElementById('facility-suggestions');
+    const mapContainer = document.getElementById('map');
+    if (suggestionsContainer && !suggestionsContainer.contains(e.target) && !mapContainer.contains(e.target)) {
+        suggestionsContainer.classList.add('hidden');
+    }
+});
+
+// Calculate distance between two coordinates (Haversine formula)
+function calculateDistance(lat1, lng1, lat2, lng2) {
+    const R = 6371; // Earth's radius in km
+    const dLat = (lat2 - lat1) * Math.PI / 180;
+    const dLng = (lng2 - lng1) * Math.PI / 180;
+    const a = Math.sin(dLat/2) * Math.sin(dLat/2) +
+              Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
+              Math.sin(dLng/2) * Math.sin(dLng/2);
+    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+    return R * c;
+}
+
+        // Initialize map after DOM is loaded
+        
+
+function locateUser(){
+    const status = document.getElementById('location-status');
+    const statusText = document.getElementById('status-text');
+    status.classList.remove('hidden'); statusText.textContent='Locating your position...';
+    if(navigator.geolocation){
+        navigator.geolocation.getCurrentPosition(pos=>{
+            const lat = pos.coords.latitude; const lng = pos.coords.longitude;
+            userLocation = { lat, lng }; // Store user location
+            map.setView([lat,lng],12);
+            L.circle([lat,lng],{radius:100, color:'blue'}).addTo(map).bindPopup('You are here').openPopup();
+            showNearestFacility(lat,lng);
+            statusText.textContent='Location found. Click any facility to show route.';
+            setTimeout(()=>status.classList.add('hidden'), 3500);
+        }, err=>{
+            statusText.textContent='Could not get your location.';
+            setTimeout(()=>status.classList.add('hidden'), 3500);
+        });
+    } else { statusText.textContent='Geolocation not supported by your browser.'; setTimeout(()=>status.classList.add('hidden'), 3500); }
+}
+
+function showRouteTo(destLat, destLng, facilityName) {
+    if (!userLocation) {
+        alert('Please allow location access first to see the route!');
+        locateUser();
+        return;
+    }
+    
+    // Remove previous route if exists
+    if (currentRoute) {
+        map.removeLayer(currentRoute);
+    }
+    
+    // Create route line
+    currentRoute = L.polyline([
+        [userLocation.lat, userLocation.lng],
+        [destLat, destLng]
+    ], {
+        color: '#1a7f37',
+        weight: 4,
+        opacity: 0.7,
+        dashArray: '10, 10'
+    }).addTo(map);
+    
+    // Calculate distance
+    const distance = map.distance([userLocation.lat, userLocation.lng], [destLat, destLng]);
+    const distanceKm = (distance / 1000).toFixed(2);
+    
+    // Fit map to show both points
+    map.fitBounds([
+        [userLocation.lat, userLocation.lng],
+        [destLat, destLng]
+    ], { padding: [50, 50] });
+    
+    // Show route info
+    alert(`🗺️ Route to ${facilityName}\n\n📍 Distance: ${distanceKm} km\n\n✅ Route shown on map (green dashed line)`);
+}
+
+function showNearestFacility(lat,lng){
+    let minDist = Infinity; let nearest = null;
+    facilities.forEach(f=>{
+        const d = Math.sqrt(Math.pow(f.lat-lat,2)+Math.pow(f.lng-lng,2));
+        if(d<minDist){ minDist=d; nearest=f; }
+    });
+    if(nearest){
+        document.getElementById('nearest-facility').classList.remove('hidden');
+        document.getElementById('facility-info').innerHTML = `<b>${nearest.name}</b><br>${nearest.address}`;
+    }
+}
+
+// ----------------- Credit Points -----------------
+document.getElementById('calculate-credits-btn').addEventListener('click', async ()=>{
+    const device = document.getElementById('device-select').value;
+    if(!device){ alert('Select a device first.'); return; }
+    const data = deviceMetalsDB[device];
+    let points = Math.floor(Math.random()*51+50);
+    document.getElementById('credit-points').textContent = points;
+    const pmList = document.getElementById('precious-metals-list'); pmList.innerHTML='';
+    Object.entries(data.precious).forEach(([k,v])=>{ pmList.innerHTML+=`<li>${k}: ${v} g</li>`; });
+    const hmList = document.getElementById('harmful-components-list'); hmList.innerHTML='';
+    Object.entries(data.harmful).forEach(([k,v])=>{ hmList.innerHTML+=`<li>${k}: ${v}</li>`; });
+    document.getElementById('credit-results').classList.remove('hidden');
+
+    const current = getCurrentUserEmail();
+    if(current){
+        try {
+            const token = localStorage.getItem('ewaste_token');
+            const response = await fetch('/api/users/claim-device', {
+                method: 'POST',
+                headers: { 
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${token}`
+                },
+                body: JSON.stringify({ device, points })
+            });
+            
+            if(response.ok) {
+                const result = await response.json();
+                // Fetch updated user data
+                const userResponse = await fetch('/api/users/me', {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                if(userResponse.ok) {
+                    const userData = await userResponse.json();
+                    localStorage.setItem('ewaste_user', JSON.stringify(userData));
+                    await updateAuthState();
+                    // Update points display immediately
+                    document.getElementById('account-points').textContent = result.points;
+                    alert(`✅ Success! ${points} points added to your account!\n\nTotal Points: ${result.points} pts\n\n✅ Points saved to database!`);
+                }
+            } else {
+                const error = await response.json();
+                alert(error.message || 'Failed to save points');
+            }
+        } catch(error) {
+            console.error('Error saving points:', error);
+            alert('Error claiming points: ' + error.message);
+        }
+    } else {
+        alert('Please login to claim points!');
+    }
+});
+
+// ----------------- Products / Store -----------------
+let products = []; // Will be loaded from database
+
+async function loadProducts() {
+    try {
+        const response = await fetch('/api/products');
+        if (response.ok) {
+            products = await response.json();
+            
+            // Product images mapping - original 6 products only
+            const productImages = {
+                'Bamboo Toothbrush (Pack)': 'https://i.postimg.cc/5y73DVV6/Gemini-Generated-Image-yq043pyq043pyq04-1.png',
+                'Reusable Tote Bag': 'https://i.postimg.cc/Pr0bDKrT/Gemini-Generated-Image-yq043pyq043pyq04-2.png',
+                'Solar Power Bank': 'https://i.postimg.cc/02KD9mGS/Gemini-Generated-Image-yq043pyq043pyq04-3.png',
+                'Recycled Notebook': 'https://i.postimg.cc/4y77Nkch/Gemini-Generated-Image-yq043pyq043pyq04.png',
+                'Ecofriendly Photo Frame': 'https://i.postimg.cc/MKwdHq53/Gemini-Generated-Image-ih0xyqih0xyqih0x-1.png',
+                'Ecofriendly Mobile Holder': 'https://i.postimg.cc/DwJJKbsh/Gemini-Generated-Image-xnk2hxxnk2hxxnk2.png'
+            };
+            
+            // Add image and description for display
+            products = products.map(p => ({
+                ...p,
+                img: productImages[p.name] || 'https://i.postimg.cc/5y73DVV6/Gemini-Generated-Image-yq043pyq043pyq04-1.png',
+                desc: `${p.category} product - ${p.name}`,
+                height: 200,
+                width: 200
+            }));
+            renderProducts();
+        }
+    } catch (error) {
+        console.error('Error loading products:', error);
+    }
+}
+
+function renderProducts() {
+    const grid = document.getElementById('products-grid');
+    grid.innerHTML = '';
+
+    if (products.length === 0) {
+        grid.innerHTML = '<p class="text-center hr-text col-span-3">Loading products...</p>';
+        return;
+    }
+
+    products.forEach(p => {
+        const div = document.createElement('div');
+        div.className = 'p-4 rounded-lg flex flex-col justify-between transition';
+        div.style.cssText = 'background: #f6f8fa; border: 1px solid #d0d7de;';
+        div.onmouseenter = function() { this.style.borderColor = '#1a7f37'; };
+        div.onmouseleave = function() { this.style.borderColor = '#d0d7de'; };
+
+        // Stock status badge
+        let stockBadge = '';
+        let buttonDisabled = '';
+        let buttonText = 'Add to Cart';
+        let buttonStyle = 'background: #1a7f37; color: white;';
+        
+        if (p.stock === 0 || p.status === 'Out of Stock') {
+            stockBadge = '<span class="text-xs px-2 py-1 rounded font-semibold" style="background: #d1242f; color: white;">Out of Stock</span>';
+            buttonDisabled = 'disabled';
+            buttonText = 'Out of Stock';
+            buttonStyle = 'background: #d0d7de; color: #57606a; cursor: not-allowed;';
+        } else if (p.stock <= 10 || p.status === 'Low Stock') {
+            stockBadge = `<span class="text-xs px-2 py-1 rounded font-semibold" style="background: #d29922; color: white;">Only ${p.stock} left</span>`;
+        } else {
+            stockBadge = `<span class="text-xs px-2 py-1 rounded font-semibold" style="background: #1a7f37; color: white;">${p.stock} in stock</span>`;
+        }
+
+        div.innerHTML = `
+            <img src="${p.img}" alt="${p.name}" 
+                class="rounded-lg mb-3 object-cover mx-auto" 
+                style="height:${p.height}px; width:${p.width}px; border: 1px solid #d0d7de;">
+            <div class="flex justify-center mb-2">${stockBadge}</div>
+            <h3 class="font-semibold mb-2 text-center hr-heading">${p.name}</h3>
+            <p class="text-sm hr-text mb-2 text-center">${p.desc}</p>
+            <p class="font-bold hr-green mb-3 text-center">${p.price} pts</p>
+            <button class="px-3 py-2 rounded-lg w-full font-semibold" 
+                style="${buttonStyle}"
+                onclick="addToCart(${p.id})" ${buttonDisabled}>${buttonText}</button>
+        `;
+
+        grid.appendChild(div);
+    });
+}
+let cart = [];
+let selectedProduct = null;
+let selectedQuantity = 1;
+
+function addToCart(id){ 
+    selectedProduct = products.find(p=>p.id===id);
+    selectedQuantity = 1;
+    showQuantityModal();
+}
+
+function showQuantityModal() {
+    const modal = document.getElementById('quantity-modal');
+    document.getElementById('qty-product-img').src = selectedProduct.img;
+    document.getElementById('qty-product-name').textContent = selectedProduct.name;
+    document.getElementById('qty-product-price').textContent = `${selectedProduct.price} pts`;
+    document.getElementById('qty-available-stock').textContent = selectedProduct.stock;
+    document.getElementById('qty-max-limit').textContent = selectedProduct.maxOrder;
+    document.getElementById('qty-input').value = selectedQuantity;
+    document.getElementById('qty-input').max = selectedProduct.maxOrder;
+    modal.classList.remove('hidden');
+}
+
+document.getElementById('close-quantity').addEventListener('click', ()=> document.getElementById('quantity-modal').classList.add('hidden'));
+document.getElementById('qty-cancel').addEventListener('click', ()=> document.getElementById('quantity-modal').classList.add('hidden'));
+
+document.getElementById('qty-decrease').addEventListener('click', ()=> {
+    if(selectedQuantity > 1) {
+        selectedQuantity--;
+        document.getElementById('qty-input').value = selectedQuantity;
+    }
+});
+
+document.getElementById('qty-increase').addEventListener('click', ()=> {
+    if(selectedQuantity < selectedProduct.maxOrder) {
+        selectedQuantity++;
+        document.getElementById('qty-input').value = selectedQuantity;
+    } else {
+        alert(`Maximum order limit reached! You can only order up to ${selectedProduct.maxOrder} units per transaction.`);
+    }
+});
+
+document.getElementById('qty-confirm').addEventListener('click', ()=> {
+    for(let i = 0; i < selectedQuantity; i++) {
+        cart.push({...selectedProduct});
+    }
+    updateCart();
+    document.getElementById('quantity-modal').classList.add('hidden');
+    selectedProduct = null;
+    selectedQuantity = 1;
+});
+function updateCart(){
+    document.getElementById('cart-count').textContent=cart.length;
+    const itemsDiv=document.getElementById('cart-items'); itemsDiv.innerHTML='';
+    let total=0; cart.forEach((p,i)=>{
+        const div=document.createElement('div'); div.className='flex justify-between items-center pb-2 mb-2';
+        div.style.borderBottom = '1px solid #d0d7de';
+        div.innerHTML=`<span class="hr-text">${p.name}</span><span class="hr-green">${p.price} pts <button onclick="removeFromCart(${i})" class="text-red-500 ml-2 hover:text-red-400">&times;</button></span>`;
+        itemsDiv.appendChild(div); total+=p.price;
+    });
+    document.getElementById('cart-total').textContent=total;
+}
+function removeFromCart(i){ cart.splice(i,1); updateCart(); }
+document.getElementById('view-cart-btn').addEventListener('click',()=>document.getElementById('cart-modal').classList.remove('hidden'));
+document.getElementById('close-cart').addEventListener('click',()=>document.getElementById('cart-modal').classList.add('hidden'));
+document.getElementById('checkout-btn').addEventListener('click', async () => {
+  const current = getCurrentUserEmail();
+  if (!current) {
+    alert('Login to redeem points');
+    return;
+  }
+
+  const userStr = localStorage.getItem('ewaste_user');
+  const user = userStr ? JSON.parse(userStr) : findUserByEmail(current);
+  const total = cart.reduce((a, b) => a + b.price, 0);
+  const address = document.getElementById('delivery-address').value.trim();
+
+  if (!address) {
+    alert('Please enter your delivery address before checkout.');
+    document.getElementById('delivery-address').focus();
+    return;
+  }
+
+  if (total > user.points) {
+    alert('Not enough points');
+    return;
+  }
+
+  try {
+    const token = localStorage.getItem('ewaste_token');
+    
+    // Prepare order items
+    const items = cart.map(item => ({
+      productId: item.id,
+      quantity: 1
+    }));
+    
+    const response = await fetch('/api/orders', {
+      method: 'POST',
+      headers: { 
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token}`
+      },
+      body: JSON.stringify({
+        items,
+        deliveryAddress: address
+      })
+    });
+    
+    if(response.ok) {
+      const data = await response.json();
+      
+      // Fetch updated user data
+      const userResponse = await fetch('/api/users/me', {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      
+      if(userResponse.ok) {
+        const userData = await userResponse.json();
+        localStorage.setItem('ewaste_user', JSON.stringify(userData));
+      }
+      
+      cart = [];
+      updateCart();
+      await updateAuthState();
+      
+      // Show success message
+      alert(`✅ Order Successful!\n\n📦 Order ID: #${data.order.id}\n💰 Points Used: ${total} pts\n💳 Remaining Points: ${data.remainingPoints} pts\n\n📍 Delivery Address:\n${address}\n\n✅ Order saved to database!`);
+      document.getElementById('cart-modal').classList.add('hidden');
+      document.getElementById('delivery-address').value = '';
+    } else {
+      const error = await response.json();
+      alert('❌ ' + (error.message || 'Order failed'));
+    }
+  } catch(error) {
+    console.error('Error placing order:', error);
+    alert('❌ Error placing order: ' + error.message);
+  }
+});
+
+
+loadProducts(); // Load products from database
+showView(viewHome);
+window.onload = initMap; // SPA initial load (Home is description) 
+</script>
+</body>
+</html>
