@@ -93,7 +93,7 @@
                 <button id="nav-edump" class="px-4 py-2 rounded-lg hr-btn-secondary">E-Dump</button>
                 <button id="nav-store" class="px-4 py-2 rounded-lg hr-btn-secondary">Store</button>
                 <button id="nav-account" class="px-4 py-2 rounded-lg hr-btn-secondary">Account</button>
-                <button id="admin-btn" onclick="window.location.href='admin.html'" class="px-4 py-2 rounded-lg hr-btn-secondary hidden">Admin</button>
+                <button id="admin-btn" onclick="window.location.href='/admin'" class="px-4 py-2 rounded-lg hr-btn-secondary hidden">Admin</button>
                 <button id="login-btn" class="px-4 py-2 rounded-lg hr-btn hidden">Logout</button>
                 <button id="open-login-btn" class="px-4 py-2 rounded-lg hr-btn">Login / Register</button>
             </nav>
@@ -828,7 +828,7 @@ loginForm.addEventListener('submit', async (e)=>{
             // Redirect based on role
             if(data.user.role === 'admin') {
                 alert('Welcome Admin! Redirecting to admin dashboard...');
-                window.location.href = '/admin.html';
+                window.location.href = '/admin';
             } else {
                 setCurrentUser(email);
                 updateAuthState();
